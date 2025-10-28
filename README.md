@@ -1,3 +1,5 @@
+if you use arch by the way you can install it from AUR ( yay -S wefetch )
+
 compilation from source code:
 
 step 1:
