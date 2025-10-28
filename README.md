@@ -16,7 +16,7 @@ step 3:
 compilation & installation
 
 
-$ cd tux/
+$ cd wefetch/
 
 $ g++ -std=c++17 wefetch.cpp -o wefetch
 
