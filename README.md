@@ -1,0 +1,2 @@
+# wefetch
+A minimalist fetch
