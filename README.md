@@ -22,7 +22,7 @@ $ cd wefetch/
 
 $ g++ -std=c++17 wefetch.cpp -o wefetch
 
-$ sudo install -Dm755 wefetch "$pkgdir/usr/bin/wefetch"
+$ sudo install -Dm755 wefetch /usr/bin/wefetch
 
 step 4:
 program launch
