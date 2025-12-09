@@ -1,515 +1,204 @@
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <vector>
-#include <map>
-#include <sstream>
-#include <iomanip>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
-#include <sys/utsname.h>
-#include <sys/sysinfo.h>
-#include <pwd.h>
-#include <filesystem>
-#include <algorithm>
+#include <sys/stat.h>
+#include <ctype.h>
 
-class WeFetch {
-private:
-    std::map<std::string, std::string> config;
-    std::vector<std::string> displayOrder;
-    
-    // Цвета
-    const std::string RESET = "\033[0m";
-    const std::string BOLD = "\033[1m";
-    std::string titleColor = "\033[1;36m";
-    std::string textColor = "\033[1;37m";
-    std::string separatorColor = "\033[1;30m";
-    
-public:
-    WeFetch() {
-        loadConfig();
-    }
-    
-    void loadConfig() {
-        std::string configPath = std::string(getenv("HOME")) + "/.config/wefetch/wefetch.conf";
-        std::ifstream file(configPath);
-        
-        if (!file.is_open()) {
-            createDefaultConfig();
-            return;
-        }
-        
-        std::string line;
-        while (std::getline(file, line)) {
-            if (line.empty() || line[0] == '#') continue;
-            
-            size_t pos = line.find('=');
-            if (pos != std::string::npos) {
-                std::string key = line.substr(0, pos);
-                std::string value = line.substr(pos + 1);
-                
-                key.erase(0, key.find_first_not_of(" \t"));
-                key.erase(key.find_last_not_of(" \t") + 1);
-                value.erase(0, value.find_first_not_of(" \t"));
-                value.erase(value.find_last_not_of(" \t") + 1);
-                
-                config[key] = value;
-                
-                if (key.find("display.") == 0) {
-                    displayOrder.push_back(value);
-                }
-            }
-        }
-        
-        // Загружаем цвета из конфига
-        if (config.find("color.title") != config.end()) {
-            titleColor = parseColor(config["color.title"]);
-        }
-        if (config.find("color.text") != config.end()) {
-            textColor = parseColor(config["color.text"]);
-        }
-        if (config.find("color.separator") != config.end()) {
-            separatorColor = parseColor(config["color.separator"]);
-        }
-    }
-    
-    void createDefaultConfig() {
-        std::string configDir = std::string(getenv("HOME")) + "/.config/wefetch";
-        std::filesystem::create_directories(configDir);
-        
-        std::string configPath = configDir + "/wefetch.conf";
-        std::ofstream file(configPath);
-        
-        file << "# WeFetch Configuration File\n";
-        file << "# Available colors: 1-255 for 256 colors, or hex like #FF0000\n\n";
-        
-        file << "# Colors\n";
-        file << "color.title=33\n";
-        file << "color.text=39\n";
-        file << "color.separator=240\n\n";
-        
-        file << "# Layout\n";
-        file << "separator=:\n";
-        file << "title.width=12\n";
-        file << "bold=true\n";
-        file << "show_border=false\n";
-        file << "border.char=|\n";
-        file << "border.color=36\n\n";
-        
-        file << "# Display order (available fields)\n";
-        file << "# user, host, os, kernel, uptime, packages, shell, de, wm, terminal, cpu, gpu, memory, swap, disk\n";
-        file << "display.1=user\n";
-        file << "display.2=host\n";
-        file << "display.3=os\n";
-        file << "display.4=kernel\n";
-        file << "display.5=uptime\n";
-        file << "display.6=packages\n";
-        file << "display.7=shell\n";
-        file << "display.8=de\n";
-        file << "display.9=wm\n";
-        file << "display.10=terminal\n";
-        file << "display.11=cpu\n";
-        file << "display.12=memory\n";
-        file << "display.13=disk\n";
-        
-        std::cout << "Created default config at: " << configPath << "\n";
-    }
-    
-    std::string parseColor(const std::string& color) {
-        if (color.empty()) return "\033[37m";
-        
-        if (color[0] == '#') {
-            // HEX to 256 color approximation (упрощенная версия)
-            return "\033[38;5;39m";
-        } else {
-            int color_code = std::stoi(color);
-            if (color_code >= 0 && color_code <= 255) {
-                return "\033[38;5;" + color + "m";
-            }
-        }
-        return "\033[37m";
-    }
-    
-    std::string getFieldTitle(const std::string& field) {
-        static std::map<std::string, std::string> titles = {
-            {"user", "User"},
-            {"host", "Hostname"},
-            {"os", "OS"},
-            {"kernel", "Kernel"},
-            {"uptime", "Uptime"},
-            {"packages", "Packages"},
-            {"shell", "Shell"},
-            {"de", "DE"},
-            {"wm", "WM"},
-            {"terminal", "Terminal"},
-            {"theme", "Theme"},
-            {"cpu", "CPU"},
-            {"gpu", "GPU"},
-            {"memory", "Memory"},
-            {"swap", "Swap"},
-            {"disk", "Disk"}
-        };
-        return titles[field];
-    }
-    
-    std::string getUsername() {
-        struct passwd *pw = getpwuid(getuid());
-        return pw ? std::string(pw->pw_name) : "unknown";
-    }
-    
-    std::string getHostname() {
-        char hostname[256];
-        return gethostname(hostname, sizeof(hostname)) == 0 ? std::string(hostname) : "unknown";
-    }
-    
-    std::string getOS() {
-        std::ifstream file("/etc/os-release");
-        if (!file.is_open()) return "Linux";
-        
-        std::string line;
-        while (std::getline(file, line)) {
-            if (line.find("PRETTY_NAME=") == 0) {
-                std::string name = line.substr(12);
-                name.erase(std::remove(name.begin(), name.end(), '"'), name.end());
-                return name;
-            }
-        }
-        return "Linux";
-    }
-    
-    std::string getKernel() {
-        struct utsname buf;
-        return uname(&buf) == 0 ? std::string(buf.release) : "unknown";
-    }
-    
-    std::string getUptime() {
-        std::ifstream file("/proc/uptime");
-        if (!file.is_open()) return "unknown";
-        
-        double uptime_seconds;
-        file >> uptime_seconds;
-        
-        int days = uptime_seconds / 86400;
-        int hours = (uptime_seconds - days * 86400) / 3600;
-        int minutes = (uptime_seconds - days * 86400 - hours * 3600) / 60;
-        
-        std::stringstream ss;
-        if (days > 0) ss << days << "d ";
-        if (hours > 0) ss << hours << "h ";
-        ss << minutes << "m";
-        
-        return ss.str();
-    }
-    
-    std::string getPackages() {
-        int count = 0;
-        
-        // Pacman (Arch)
-        if (std::filesystem::exists("/var/lib/pacman/local")) {
-            for (const auto& entry : std::filesystem::directory_iterator("/var/lib/pacman/local")) {
-                if (entry.is_directory()) count++;
-            }
-            return std::to_string(count) + " (pacman)";
-        }
-        
-        // DPKG (Debian/Ubuntu)
-        std::ifstream dpkg("/var/lib/dpkg/status");
-        if (dpkg.is_open()) {
-            std::string line;
-            while (std::getline(dpkg, line)) {
-                if (line.find("Package:") == 0) count++;
-            }
-            return std::to_string(count) + " (dpkg)";
-        }
-        
-        // RPM (Fedora)
-        FILE* pipe = popen("rpm -qa 2>/dev/null | wc -l", "r");
-        if (pipe) {
-            char buffer[128];
-            if (fgets(buffer, sizeof(buffer), pipe) != NULL) {
-                count = std::stoi(buffer);
-                pclose(pipe);
-                return std::to_string(count) + " (rpm)";
-            }
-            pclose(pipe);
-        }
-        
-        return "unknown";
-    }
-    
-    std::string getShell() {
-        char* shell = getenv("SHELL");
-        if (!shell) return "unknown";
-        
-        std::string shell_str(shell);
-        size_t pos = shell_str.find_last_of('/');
-        return pos != std::string::npos ? shell_str.substr(pos + 1) : shell_str;
-    }
-    
-    std::string getDE() {
-        char* desktop = getenv("XDG_CURRENT_DESKTOP");
-        return desktop ? std::string(desktop) : "None";
-    }
-    
-    std::string getWM() {
-        // Для Hyprland проверим переменную окружения
-        char* hyprland = getenv("HYPRLAND_INSTANCE_SIGNATURE");
-        if (hyprland) return "Hyprland";
-        
-        // Для Sway
-        char* sway = getenv("SWAYSOCK");
-        if (sway) return "Sway";
-        
-        // Для других WM
-        char* wm = getenv("XDG_CURRENT_DESKTOP");
-        if (wm) return wm;
-        
-        // Проверим через процесс
-        system("ps -e | grep -E 'kwin|openbox|i3|xfwm4|mutter|compiz|qtile|bspwm' | head -1 | awk '{print $4}' > /tmp/wefetch_wm 2>/dev/null");
-        std::ifstream file("/tmp/wefetch_wm");
-        std::string wm_name;
-        if (std::getline(file, wm_name) && !wm_name.empty()) {
-            return wm_name;
-        }
-        
-        return "unknown";
-    }
-    
-    std::string getTerminal() {
-        char* term = getenv("TERM");
-        return term ? std::string(term) : "unknown";
-    }
-    
-    std::string getCPU() {
-        std::ifstream file("/proc/cpuinfo");
-        if (!file.is_open()) return "unknown";
-        
-        std::string line;
-        while (std::getline(file, line)) {
-            if (line.find("model name") != std::string::npos) {
-                size_t pos = line.find(':');
-                if (pos != std::string::npos) {
-                    std::string cpu = line.substr(pos + 2);
-                    cpu.erase(0, cpu.find_first_not_of(" \t"));
-                    cpu.erase(cpu.find_last_not_of(" \t") + 1);
-                    
-                    // Упрощаем длинные названия CPU
-                    if (cpu.length() > 40) {
-                        size_t pos = cpu.find('@');
-                        if (pos != std::string::npos) {
-                            cpu = cpu.substr(0, pos);
-                            cpu.erase(cpu.find_last_not_of(" \t") + 1);
-                        }
-                    }
-                    return cpu;
-                }
-            }
-        }
-        return "unknown";
-    }
-    
-    std::vector<std::string> getGPUs() {
-        std::vector<std::string> gpus;
-        FILE* pipe = popen("lspci | grep -i 'vga\\|3d\\|2d'", "r");
-        if (!pipe) return gpus;
-        
-        char buffer[512];
-        while (fgets(buffer, sizeof(buffer), pipe) != NULL) {
-            std::string line(buffer);
-            // Ищем название видеокарты после последнего двоеточия
-            size_t last_colon = line.find_last_of(':');
-            if (last_colon != std::string::npos) {
-                std::string gpu_name = line.substr(last_colon + 2);
-                // Убираем версию в скобках (rev xx)
-                size_t rev_pos = gpu_name.find("(rev");
-                if (rev_pos != std::string::npos) {
-                    gpu_name = gpu_name.substr(0, rev_pos);
-                }
-                gpu_name.erase(gpu_name.find_last_not_of(" \n\r\t") + 1);
-                if (!gpu_name.empty()) {
-                    gpus.push_back(gpu_name);
-                }
-            }
-        }
-        pclose(pipe);
-        
-        return gpus;
-    }
-    
-    std::string getMemory() {
-        std::ifstream file("/proc/meminfo");
-        if (!file.is_open()) return "unknown";
-        
-        long total_mem = 0, free_mem = 0, buffers = 0, cached = 0;
-        std::string line;
-        
-        while (std::getline(file, line)) {
-            std::stringstream ss(line);
-            std::string key;
-            ss >> key;
-            
-            if (key == "MemTotal:") ss >> total_mem;
-            else if (key == "MemFree:") ss >> free_mem;
-            else if (key == "Buffers:") ss >> buffers;
-            else if (key == "Cached:") ss >> cached;
-        }
-        
-        if (total_mem > 0) {
-            long used_mem = total_mem - free_mem - buffers - cached;
-            double used_gb = used_mem / 1024.0 / 1024.0;
-            double total_gb = total_mem / 1024.0 / 1024.0;
-            int percent = static_cast<int>((used_mem * 100) / total_mem);
-            
-            std::stringstream ss;
-            ss << std::fixed << std::setprecision(1) << used_gb << "GB / " << total_gb << "GB (" << percent << "%)";
-            return ss.str();
-        }
-        
-        return "unknown";
-    }
-    
-    std::string getDisk() {
-        FILE* pipe = popen("df -h --output=target,used,size,pcent 2>/dev/null | grep -E '^/|/home$|/boot$' | awk '{print $1 \": \" $2 \" / \" $3 \" (\" $4 \")\"}'", "r");
-        if (!pipe) return "unknown";
-        
-        std::stringstream result;
-        char buffer[256];
-        bool first = true;
-        
-        while (fgets(buffer, sizeof(buffer), pipe) != NULL) {
-            std::string line(buffer);
-            line.erase(line.find_last_not_of(" \n\r\t") + 1);
-            
-            if (!line.empty()) {
-                if (!first) {
-                    result << ", ";
-                }
-                result << line;
-                first = false;
-            }
-        }
-        pclose(pipe);
-        
-        std::string disk_info = result.str();
-        return disk_info.empty() ? "unknown" : disk_info;
-    }
-    
-    std::string getSwap() {
-        std::ifstream file("/proc/meminfo");
-        if (!file.is_open()) return "unknown";
-        
-        long total_swap = 0, free_swap = 0;
-        std::string line;
-        
-        while (std::getline(file, line)) {
-            std::stringstream ss(line);
-            std::string key;
-            ss >> key;
-            
-            if (key == "SwapTotal:") ss >> total_swap;
-            else if (key == "SwapFree:") ss >> free_swap;
-        }
-        
-        if (total_swap > 0) {
-            long used_swap = total_swap - free_swap;
-            double used_gb = used_swap / 1024.0 / 1024.0;
-            double total_gb = total_swap / 1024.0 / 1024.0;
-            int percent = static_cast<int>((used_swap * 100) / total_swap);
-            
-            std::stringstream ss;
-            ss << std::fixed << std::setprecision(1) << used_gb << "GB / " << total_gb << "GB (" << percent << "%)";
-            return ss.str();
-        }
-        
-        return "None";
-    }
-    
-    void display() {
-        std::map<std::string, std::string> info;
-        
-        // Собираем всю информацию
-        info["user"] = getUsername();
-        info["host"] = getHostname();
-        info["os"] = getOS();
-        info["kernel"] = getKernel();
-        info["uptime"] = getUptime();
-        info["packages"] = getPackages();
-        info["shell"] = getShell();
-        info["de"] = getDE();
-        info["wm"] = getWM();
-        info["terminal"] = getTerminal();
-        info["cpu"] = getCPU();
-        info["memory"] = getMemory();
-        info["swap"] = getSwap();
-        info["disk"] = getDisk();
-        
-        std::string separator = config.find("separator") != config.end() ? 
-                               config["separator"] : ":";
-        
-        int titleWidth = 12;
-        if (config.find("title.width") != config.end()) {
-            titleWidth = std::stoi(config["title.width"]);
-        }
-        
-        bool showBorder = config.find("show_border") != config.end() && 
-                         config["show_border"] == "true";
-        
-        std::string borderColor = separatorColor;
-        if (config.find("border.color") != config.end()) {
-            borderColor = parseColor(config["border.color"]);
-        }
-        
-        std::string borderChar = "|";
-        if (config.find("border.char") != config.end()) {
-            borderChar = config["border.char"];
-        }
-        
-        // Выводим информацию
-        for (const auto& field : displayOrder) {
-            if (field == "gpu") {
-                // Обработка нескольких видеокарт
-                std::vector<std::string> gpus = getGPUs();
-                if (!gpus.empty()) {
-                    for (size_t i = 0; i < gpus.size(); ++i) {
-                        std::string title = "GPU" + std::to_string(i + 1);
-                        std::string value = gpus[i];
-                        
-                        if (showBorder) {
-                            std::cout << borderColor << borderChar << RESET << " ";
-                        }
-                        
-                        std::cout << titleColor << std::left << std::setw(titleWidth) 
-                                  << (title + separator) 
-                                  << RESET << textColor << value << RESET;
-                                  
-                        if (showBorder) {
-                            std::cout << borderColor << " " << borderChar;
-                        }
-                        std::cout << "\n";
-                    }
-                }
-            } else if (info.find(field) != info.end() && !info[field].empty() && info[field] != "unknown") {
-                std::string title = getFieldTitle(field);
-                std::string value = info[field];
-                
-                if (showBorder) {
-                    std::cout << borderColor << borderChar << RESET << " ";
-                }
-                
-                std::cout << titleColor << std::left << std::setw(titleWidth) 
-                          << (title + separator) 
-                          << RESET << textColor << value << RESET;
-                          
-                if (showBorder) {
-                    std::cout << borderColor << " " << borderChar;
-                }
-                std::cout << "\n";
-            }
-        }
-    }
-};
+#define MAX_PATH 512
+#define MAX_LINE 256
 
-int main() {
-    WeFetch wefetch;
-    wefetch.display();
+char* expand_path(const char* path) {
+    static char expanded[MAX_PATH];
+    if (strncmp(path, "~/", 2) == 0) {
+        const char* home = getenv("HOME");
+        if (home) {
+            snprintf(expanded, MAX_PATH, "%s%s", home, path + 1);
+            return expanded;
+        }
+    }
+    strncpy(expanded, path, MAX_PATH - 1);
+    return expanded;
+}
+
+char ascii_color[16] = "\033[1;37m";
+char default_distro[64] = "artix";
+
+void create_default_config(const char* config_path) {
+    FILE *fp = fopen(config_path, "w");
+    if (!fp) return;
+    
+    fprintf(fp, "ascii_color=\\033[1;37m\n");
+    fprintf(fp, "default_distro=artix\n");
+    
+    fclose(fp);
+}
+
+void load_config() {
+    char config_path[MAX_PATH];
+    snprintf(config_path, MAX_PATH, "%s/.config/wefetch/wefetch.conf", getenv("HOME"));
+    
+    FILE *fp = fopen(config_path, "r");
+    if (!fp) {
+        create_default_config(config_path);
+        fp = fopen(config_path, "r");
+        if (!fp) return;
+    }
+    
+    char line[MAX_LINE];
+    while (fgets(line, sizeof(line), fp)) {
+        line[strcspn(line, "\n")] = 0;
+        char *key = strtok(line, "=");
+        char *value = strtok(NULL, "=");
+        
+        if (key && value) {
+            if (strcmp(key, "ascii_color") == 0) {
+                strncpy(ascii_color, value, sizeof(ascii_color) - 1);
+            } else if (strcmp(key, "default_distro") == 0) {
+                strncpy(default_distro, value, sizeof(default_distro) - 1);
+            }
+        }
+    }
+    fclose(fp);
+}
+
+char* get_init_system() {
+    static char init[64] = "Unknown";
+    FILE *fp = popen("ps -p 1 -o comm= 2>/dev/null", "r");
+    if (!fp) return init;
+    
+    char buffer[128];
+    if (fgets(buffer, sizeof(buffer), fp)) {
+        buffer[strcspn(buffer, "\n")] = 0;
+        if (strcmp(buffer, "systemd") == 0) strcpy(init, "systemd");
+        else if (strcmp(buffer, "dinit") == 0) strcpy(init, "dinit");
+        else if (strcmp(buffer, "runit") == 0) strcpy(init, "runit");
+        else if (strstr(buffer, "openrc") != NULL) strcpy(init, "OpenRC");
+        else if (strcmp(buffer, "s6-svscan") == 0) strcpy(init, "s6");
+        else strcpy(init, buffer);
+    }
+    pclose(fp);
+    return init;
+}
+
+void capitalize(char *str) {
+    if (str[0]) str[0] = toupper(str[0]);
+    for (int i = 1; str[i]; i++) {
+        if (str[i-1] == ' ') str[i] = toupper(str[i]);
+    }
+}
+
+int display_logo(const char* distro_name) {
+    char logo_path[MAX_PATH];
+    char distro_lower[64];
+    strncpy(distro_lower, distro_name, sizeof(distro_lower));
+    for (int i = 0; distro_lower[i]; i++) distro_lower[i] = tolower(distro_lower[i]);
+    
+    snprintf(logo_path, MAX_PATH, "%s/.config/wefetch/logos/%s.txt", getenv("HOME"), distro_lower);
+    
+    FILE *fp = fopen(logo_path, "r");
+    if (!fp) return 0;
+    
+    char line[256];
+    int line_count = 0;
+    while (fgets(line, sizeof(line), fp)) {
+        line[strcspn(line, "\n")] = 0;
+        printf("%s%s%s\n", ascii_color, line, "\033[0m");
+        line_count++;
+    }
+    fclose(fp);
+    return line_count;
+}
+
+void display_info(const char* distro_name) {
+    char* init_system = get_init_system();
+    
+    char distro_display[64];
+    strncpy(distro_display, distro_name, sizeof(distro_display));
+    capitalize(distro_display);
+    
+    char kernel[128] = "Unknown";
+    char username[64] = "Unknown";
+    char packages[64] = "Unknown";
+    char shell[64] = "Unknown";
+    
+    FILE *fp = popen("uname -r", "r");
+    if (fp) {
+        fgets(kernel, sizeof(kernel), fp);
+        kernel[strcspn(kernel, "\n")] = 0;
+        pclose(fp);
+    }
+    
+    char* user = getenv("USER");
+    if (user) strcpy(username, user);
+    
+    fp = popen("pacman -Q 2>/dev/null | wc -l", "r");
+    if (fp) {
+        fgets(packages, sizeof(packages), fp);
+        packages[strcspn(packages, "\n")] = 0;
+        pclose(fp);
+    } else {
+        fp = popen("dpkg -l 2>/dev/null | wc -l", "r");
+        if (fp) {
+            fgets(packages, sizeof(packages), fp);
+            packages[strcspn(packages, "\n")] = 0;
+            pclose(fp);
+        }
+    }
+    
+    char* shell_path = getenv("SHELL");
+    if (shell_path) {
+        char* slash = strrchr(shell_path, '/');
+        if (slash) strcpy(shell, slash + 1);
+        else strcpy(shell, shell_path);
+    }
+    
+    int logo_lines = display_logo(distro_name);
+    if (logo_lines > 0) {
+        for (int i = logo_lines; i < 6; i++) printf("\n");
+        
+        printf("\033[1;32m╭─\033[0m  \033[1;37m%s\033[0m\n", distro_display);
+        printf("\033[1;32m├─\033[0m  \033[1;37m%s\033[0m\n", kernel);
+        printf("\033[1;32m├─\033[0m  \033[1;37m%s\033[0m\n", username);
+        printf("\033[1;32m├─󰏗\033[0m  \033[1;31m%s\033[0m\n", packages);
+        printf("\033[1;32m├─󰒍\033[0m  \033[1;33m%s\033[0m\n", init_system);
+        printf("\033[1;32m╰─\033[0m  \033[1;36m%s\033[0m\n", shell);
+    } else {
+        printf("Logo for %s not found\n", distro_display);
+    }
+}
+
+void create_dirs() {
+    char logos_dir[MAX_PATH];
+    snprintf(logos_dir, MAX_PATH, "%s/.config/wefetch/logos", getenv("HOME"));
+    
+    struct stat st = {0};
+    if (stat(logos_dir, &st) == -1) {
+        char config_dir[MAX_PATH];
+        snprintf(config_dir, MAX_PATH, "%s/.config", getenv("HOME"));
+        mkdir(config_dir, 0755);
+        
+        char wefetch_dir[MAX_PATH];
+        snprintf(wefetch_dir, MAX_PATH, "%s/.config/wefetch", getenv("HOME"));
+        mkdir(wefetch_dir, 0755);
+        
+        mkdir(logos_dir, 0755);
+    }
+}
+
+int main(int argc, char *argv[]) {
+    create_dirs();
+    load_config();
+    
+    char* distro_name = default_distro;
+    
+    if (argc == 3 && strcmp(argv[1], "--distro") == 0) {
+        distro_name = argv[2];
+    } else if (argc > 1) {
+        printf("Usage: %s [--distro <distro_name>]\n", argv[0]);
+        return 1;
+    }
+    
+    display_info(distro_name);
     return 0;
 }
