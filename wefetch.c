@@ -21,14 +21,39 @@ char* expand_path(const char* path) {
     return expanded;
 }
 
-char ascii_color[16] = "\033[1;37m";
+char ascii_color[32] = "\033[1;37m";
 char default_distro[64] = "artix";
+
+void parse_color(const char* color_str, char* output) {
+    int r, g, b;
+    if (sscanf(color_str, "%d,%d,%d", &r, &g, &b) == 3) {
+        snprintf(output, 32, "\033[38;2;%d;%d;%dm", r, g, b);
+    } else if (strcmp(color_str, "red") == 0) {
+        strcpy(output, "\033[1;31m");
+    } else if (strcmp(color_str, "green") == 0) {
+        strcpy(output, "\033[1;32m");
+    } else if (strcmp(color_str, "yellow") == 0) {
+        strcpy(output, "\033[1;33m");
+    } else if (strcmp(color_str, "blue") == 0) {
+        strcpy(output, "\033[1;34m");
+    } else if (strcmp(color_str, "magenta") == 0) {
+        strcpy(output, "\033[1;35m");
+    } else if (strcmp(color_str, "cyan") == 0) {
+        strcpy(output, "\033[1;36m");
+    } else if (strcmp(color_str, "white") == 0) {
+        strcpy(output, "\033[1;37m");
+    } else {
+        strcpy(output, "\033[1;37m");
+    }
+}
 
 void create_default_config(const char* config_path) {
     FILE *fp = fopen(config_path, "w");
     if (!fp) return;
     
-    fprintf(fp, "ascii_color=\\033[1;37m\n");
+    fprintf(fp, "# ASCII art color (RGB format: 255,255,255 or name: red, green, blue, etc)\n");
+    fprintf(fp, "ascii_color=255,255,255\n");
+    fprintf(fp, "# Default distribution name\n");
     fprintf(fp, "default_distro=artix\n");
     
     fclose(fp);
@@ -48,12 +73,14 @@ void load_config() {
     char line[MAX_LINE];
     while (fgets(line, sizeof(line), fp)) {
         line[strcspn(line, "\n")] = 0;
+        if (line[0] == '#' || line[0] == '\0') continue;
+        
         char *key = strtok(line, "=");
         char *value = strtok(NULL, "=");
         
         if (key && value) {
             if (strcmp(key, "ascii_color") == 0) {
-                strncpy(ascii_color, value, sizeof(ascii_color) - 1);
+                parse_color(value, ascii_color);
             } else if (strcmp(key, "default_distro") == 0) {
                 strncpy(default_distro, value, sizeof(default_distro) - 1);
             }
@@ -103,7 +130,7 @@ int display_logo(const char* distro_name) {
     int line_count = 0;
     while (fgets(line, sizeof(line), fp)) {
         line[strcspn(line, "\n")] = 0;
-        printf("%s%s%s\n", ascii_color, line, "\033[0m");
+        printf("%s%s\033[0m\n", ascii_color, line);
         line_count++;
     }
     fclose(fp);
