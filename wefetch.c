@@ -184,12 +184,12 @@ void display_info(const char* distro_name) {
     if (logo_lines > 0) {
         for (int i = logo_lines; i < 6; i++) printf("\n");
         
-        printf("\033[1;32m╭─\033[0m  \033[1;37m%s\033[0m\n", distro_display);
-        printf("\033[1;32m├─\033[0m  \033[1;37m%s\033[0m\n", kernel);
-        printf("\033[1;32m├─\033[0m  \033[1;37m%s\033[0m\n", username);
-        printf("\033[1;32m├─󰏗\033[0m  \033[1;31m%s\033[0m\n", packages);
-        printf("\033[1;32m├─󰒍\033[0m  \033[1;33m%s\033[0m\n", init_system);
-        printf("\033[1;32m╰─\033[0m  \033[1;36m%s\033[0m\n", shell);
+        printf("\033[1;34m\033[0m  \033[1;36m%s\033[0m\n", distro_display);
+        printf("\033[1;33m\033[0m  \033[1;37m%s\033[0m\n", kernel);
+        printf("\033[1;35m\033[0m  \033[1;37m%s\033[0m\n", username);
+        printf("\033[1;31m󰏗\033[0m  \033[1;37m%s\033[0m\n", packages);
+        printf("\033[1;32m󰒍\033[0m  \033[1;37m%s\033[0m\n", init_system);
+        printf("\033[1;36m\033[0m  \033[1;37m%s\033[0m\n", shell);
     } else {
         printf("Logo for %s not found\n", distro_display);
     }
