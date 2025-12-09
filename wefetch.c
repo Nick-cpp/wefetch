@@ -22,7 +22,7 @@ char* expand_path(const char* path) {
 }
 
 char ascii_color[32] = "\033[1;37m";
-char default_distro[64] = "artix";
+char default_distro[64] = "";
 
 void parse_color(const char* color_str, char* output) {
     int r, g, b;
@@ -53,8 +53,8 @@ void create_default_config(const char* config_path) {
     
     fprintf(fp, "# ASCII art color (RGB format: 255,255,255 or name: red, green, blue, etc)\n");
     fprintf(fp, "ascii_color=255,255,255\n");
-    fprintf(fp, "# Default distribution name\n");
-    fprintf(fp, "default_distro=artix\n");
+    fprintf(fp, "# Default distribution name (set this to your distro name)\n");
+    fprintf(fp, "# default_distro=artix\n");
     
     fclose(fp);
 }
@@ -217,11 +217,20 @@ int main(int argc, char *argv[]) {
     create_dirs();
     load_config();
     
-    char* distro_name = default_distro;
+    char* distro_name = NULL;
     
     if (argc == 3 && strcmp(argv[1], "--distro") == 0) {
         distro_name = argv[2];
-    } else if (argc > 1) {
+    } else if (argc == 1) {
+        if (strlen(default_distro) > 0) {
+            distro_name = default_distro;
+        } else {
+            printf("Set default distribution in ~/.config/wefetch/wefetch.conf\n");
+            printf("Example: default_distro=artix\n");
+            printf("Or use: %s --distro <distro_name>\n", argv[0]);
+            return 1;
+        }
+    } else {
         printf("Usage: %s [--distro <distro_name>]\n", argv[0]);
         return 1;
     }
