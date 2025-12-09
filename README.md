@@ -20,7 +20,7 @@ compilation & installation
 
 $ cd wefetch/
 
-$ g++ -std=c++17 wefetch.cpp -o wefetch
+$ gcc wefetch.c -o wefetch
 
 $ sudo install -Dm755 wefetch /usr/bin/wefetch
 
