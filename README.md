@@ -28,3 +28,5 @@ step 4:
 program launch
 
 $ wefetch
+
+Add your logos to ~/.config/wefetch/logos/
