@@ -27,8 +27,9 @@ $ sudo install -Dm755 wefetch /usr/bin/wefetch
 step 4:
 install default logos
 
-mkdir -p ~/.config/wefetch/logos/
-cp logos/* ~/.config/wefetch/logos/
+$ mkdir -p ~/.config/wefetch/logos/
+
+$ cp logos/* ~/.config/wefetch/logos/
 
 step 5:
 program launch
