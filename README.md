@@ -37,3 +37,9 @@ program launch
 $ wefetch
 
 Add your logos to ~/.config/wefetch/logos/
+
+
+<img width="593" height="457" alt="image" src="https://github.com/user-attachments/assets/b6fa77d2-9174-40ee-9641-22fd09c7bc3e" />
+
+
+<img width="595" height="468" alt="image" src="https://github.com/user-attachments/assets/de26bfed-b43c-45b7-ad09-ce1c88432f65" />
