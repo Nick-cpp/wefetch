@@ -41,7 +41,7 @@ Add your logos to ~/.config/wefetch/logos/
 Confingure display distro via ~/.config/wefetch/wefetch.conf
 
 
-<img width="593" height="457" alt="image" src="https://github.com/user-attachments/assets/b6fa77d2-9174-40ee-9641-22fd09c7bc3e" />
+<img width="550" height="481" alt="image" src="https://github.com/user-attachments/assets/7feaa773-05cd-43db-8442-1aebfc8ef6b6" />
 
 
-<img width="595" height="468" alt="image" src="https://github.com/user-attachments/assets/de26bfed-b43c-45b7-ad09-ce1c88432f65" />
+<img width="542" height="472" alt="image" src="https://github.com/user-attachments/assets/474caa43-e549-4197-976a-7c1659ed0e4c" />
