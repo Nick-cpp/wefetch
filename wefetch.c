@@ -110,71 +110,86 @@ char* get_init_system() {
 
 void get_package_info(char* packages, size_t size) {
     FILE *fp;
+    char buffer[64];
     
-    fp = popen("pacman -Q 2>/dev/null | wc -l", "r");
-    if (fp) {
-        if (fgets(packages, size, fp)) {
-            packages[strcspn(packages, "\n")] = 0;
-            pclose(fp);
-            return;
-        }
-        pclose(fp);
-    }
-    
-    fp = popen("dpkg -l 2>/dev/null | wc -l", "r");
-    if (fp) {
-        if (fgets(packages, size, fp)) {
-            packages[strcspn(packages, "\n")] = 0;
-            pclose(fp);
-            return;
-        }
-        pclose(fp);
-    }
-    
-    fp = popen("rpm -qa 2>/dev/null | wc -l", "r");
-    if (fp) {
-        if (fgets(packages, size, fp)) {
-            packages[strcspn(packages, "\n")] = 0;
-            pclose(fp);
-            return;
-        }
-        pclose(fp);
-    }
-    
+    // Проверка xbps (Void Linux)
     fp = popen("xbps-query -l 2>/dev/null | wc -l", "r");
     if (fp) {
-        if (fgets(packages, size, fp)) {
-            packages[strcspn(packages, "\n")] = 0;
+        if (fgets(buffer, sizeof(buffer), fp) && atoi(buffer) > 0) {
+            buffer[strcspn(buffer, "\n")] = 0;
+            strncpy(packages, buffer, size);
+            pclose(fp);
+            return;
+        }
+        pclose(fp);
+    }
+
+    // Проверка pacman (Arch)
+    fp = popen("pacman -Q 2>/dev/null | wc -l", "r");
+    if (fp) {
+        if (fgets(buffer, sizeof(buffer), fp) && atoi(buffer) > 0) {
+            buffer[strcspn(buffer, "\n")] = 0;
+            strncpy(packages, buffer, size);
             pclose(fp);
             return;
         }
         pclose(fp);
     }
     
+    // Проверка dpkg (Debian)
+    fp = popen("dpkg -l 2>/dev/null | grep -c '^ii'", "r");
+    if (fp) {
+        if (fgets(buffer, sizeof(buffer), fp) && atoi(buffer) > 0) {
+            buffer[strcspn(buffer, "\n")] = 0;
+            strncpy(packages, buffer, size);
+            pclose(fp);
+            return;
+        }
+        pclose(fp);
+    }
+    
+    // Проверка rpm (Fedora/RHEL)
+    fp = popen("rpm -qa 2>/dev/null | wc -l", "r");
+    if (fp) {
+        if (fgets(buffer, sizeof(buffer), fp) && atoi(buffer) > 0) {
+            buffer[strcspn(buffer, "\n")] = 0;
+            strncpy(packages, buffer, size);
+            pclose(fp);
+            return;
+        }
+        pclose(fp);
+    }
+    
+    // Проверка apk (Alpine)
     fp = popen("apk list -I 2>/dev/null | wc -l", "r");
     if (fp) {
-        if (fgets(packages, size, fp)) {
-            packages[strcspn(packages, "\n")] = 0;
+        if (fgets(buffer, sizeof(buffer), fp) && atoi(buffer) > 0) {
+            buffer[strcspn(buffer, "\n")] = 0;
+            strncpy(packages, buffer, size);
             pclose(fp);
             return;
         }
         pclose(fp);
     }
     
+    // Проверка nix
     fp = popen("nix-store -q --requisites /run/current-system/sw 2>/dev/null | wc -l", "r");
     if (fp) {
-        if (fgets(packages, size, fp)) {
-            packages[strcspn(packages, "\n")] = 0;
+        if (fgets(buffer, sizeof(buffer), fp) && atoi(buffer) > 0) {
+            buffer[strcspn(buffer, "\n")] = 0;
+            strncpy(packages, buffer, size);
             pclose(fp);
             return;
         }
         pclose(fp);
     }
     
+    // Проверка emerge (Gentoo)
     fp = popen("emerge -ep world 2>/dev/null | grep -c \"^\\[*\\]\"", "r");
     if (fp) {
-        if (fgets(packages, size, fp)) {
-            packages[strcspn(packages, "\n")] = 0;
+        if (fgets(buffer, sizeof(buffer), fp) && atoi(buffer) > 0) {
+            buffer[strcspn(buffer, "\n")] = 0;
+            strncpy(packages, buffer, size);
             pclose(fp);
             return;
         }
