@@ -20,7 +20,7 @@ $ cd wefetch/
 
 $ gcc wefetch.c -o wefetch
 
-$ sudo install -Dm755 wefetch /usr/bin/wefetch
+$ sudo mv wefetch /usr/bin/wefetch
 
 step 4:
 install default logos
