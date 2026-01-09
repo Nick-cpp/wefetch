@@ -42,5 +42,4 @@ Confingure display distro via ~/.config/wefetch/wefetch.conf
 <img width="544" height="474" alt="image" src="https://github.com/user-attachments/assets/442ac062-c477-4f30-a7af-38d2f5735f9b" />
 
 
-<img width="558" height="483" alt="image" src="https://github.com/user-attachments/assets/c98718c8-1882-4ae9-8aab-a5ffbd66dbd4" />
-
+<img width="538" height="474" alt="image" src="https://github.com/user-attachments/assets/fb8b8830-3ca2-4a82-92ed-b57744793fb6" />
