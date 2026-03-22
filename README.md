@@ -1,4 +1,6 @@
-compilation from source code:
+Avaible on AUR ( yay -S wefetch )
+
+Compilation from source code:
 
 step 1:
 you need installed gcc and git package ( Gnu Complier Collection )
